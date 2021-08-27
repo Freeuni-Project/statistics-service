@@ -1,0 +1,57 @@
+# docker-compose.yml
+version: '3.8'
+
+volumes:
+  statisticsdb_vol:
+
+networks:
+  micro_network:
+    external:
+      name: micro_network
+
+services:
+  stats-api:
+    container_name: cstatistics-service
+    build:
+      context: ../statistics-service
+    ports:
+      - "5006:5006"
+    depends_on:
+      - stats-db
+    networks:
+      - micro_network
+    environment:
+      PYTHONUNBUFFERED: 1
+    restart: always
+
+  queue:
+    build:
+      context: .
+    command: ['consumer.py']
+    depends_on:
+    - stats-db
+
+  stats-db:
+    container_name: cstatistics_dbase
+    image: postgres:13-alpine
+    ports:
+      - "32006:5432"
+    environment:
+      POSTGRES_USER: projectmanager
+      POSTGRES_PASSWORD: project_manager
+      POSTGRES_DB: statistics-prod
+      POSTGRES_ROOT_PASSWORD: root
+      PYTHONUNBUFFERED: 1
+    networks:
+      - micro_network
+    volumes:
+      - statisticsdb_vol:/var/lib/postgresql/data/
+
+  rabbitmq:
+      image: 'rabbitmq:3.6-management-alpine'
+      hostname: 'rabbitmq'
+      ports:
+        - '5672:5672'
+        - '15672:15672'
+      networks:
+        - micro_network
