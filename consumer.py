@@ -82,4 +82,4 @@ channel.basic_consume(queue='stat_queue', on_message_callback=callback, auto_ack
 print('Started consuming')
 
 channel.start_consuming()
-channel.close()
+
