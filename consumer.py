@@ -1,5 +1,7 @@
 import json
 import time
+from datetime import datetime
+
 import pika
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exc
@@ -13,7 +15,7 @@ print(' [*] Sleeping for ', sleepTime, ' seconds.')
 time.sleep(sleepTime)
 
 print(' [*] Connecting *statistics-service* to server ...')
-parameters = pika.ConnectionParameters(host='rabbitmq', heartbeat=10)
+parameters = pika.ConnectionParameters(host='rabbitmq', heartbeat=0)
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
 channel.queue_declare(queue='stat_queue', durable=True)
@@ -22,7 +24,7 @@ threads = []
 print(' [*] Waiting for messages.')
 
 
-def add_stat_to_db(data, content_type):
+def add_stat_new(data, content_type):
     try:
         stat = Stat()
         stat.project_id = data['project_id']
@@ -36,6 +38,17 @@ def add_stat_to_db(data, content_type):
             db.session.commit()
     except exc.SQLAlchemyError:
         print("Unable to save new stat --- %r", content_type)
+
+
+def update_stat_done(data, content_type):
+    try:
+        ticket_id = data['id']
+        with app.app_context():
+            stat = Stat.query.filter_by(ticket_id=ticket_id).first()
+            stat.ticket_status = "Done"
+            db.session.commit()
+    except exc.SQLAlchemyError:
+        print("Unable to update new stat --- %r", content_type)
 
 
 def delete_stat_from_db(data, content_type):
@@ -54,9 +67,13 @@ delete_stats = ['delete_ticket']
 
 def callback(ch, method, properties, body):
     data = json.loads(body)
-    if properties.content_type in add_stats:
-        add_stat_to_db(data, properties.content_type)
-    elif properties.content_type in delete_stats:
+    if properties.content_type == 'new_ticket':
+        add_stat_new(data, properties.content_type)
+
+    elif properties.content_type == 'done_ticket':
+        update_stat_done(data, properties.content_type)
+
+    elif properties.content_type == 'delete_ticket':
         delete_stat_from_db(data, properties.content_type)
 
 
