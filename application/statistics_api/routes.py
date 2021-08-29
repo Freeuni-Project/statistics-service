@@ -3,6 +3,7 @@
 from . import statistics_api_blueprint
 from .. import db
 from ..models import Stat
+from datetime import datetime
 from flask import make_response, request, jsonify
 
 
@@ -36,4 +37,34 @@ def post_create():
 
     response = jsonify({'message': 'Stat added', 'result': stat.to_json()})
     return response
+
+
+@statistics_api_blueprint.route('/api/stat/average-time', methods=['GET'])
+def get_average_time():
+    res = Stat.query.filter(Stat.date_finished!=None).all()
+    time = 0
+    for row in res:
+        date_format_str = '%Y-%m-%d %H:%M:%S.%f'
+        start = datetime.strptime(str(row.to_json()['date_created']), date_format_str)
+        end = datetime.strptime(str(row.to_json()['date_finished']), date_format_str)
+        diff = end - start
+        diff_in_minutes = diff.total_seconds() / 60
+        time += diff.total_seconds() / 60
+    result = "there is not finished task to calculate average time" if not res else time/len(res)
+    return jsonify({"average minutes": time/len(res)})
+
+
+@statistics_api_blueprint.route('/api/stat/<user_id>/average-time', methods=['GET'])
+def get_average_time_by_user(user_id):
+    res = Stat.query.filter(Stat.date_finished!=None, Stat.assignee_id==user_id).all()
+    time = 0
+    for row in res:
+        date_format_str = '%Y-%m-%d %H:%M:%S.%f'
+        start = datetime.strptime(str(row.to_json()['date_created']), date_format_str)
+        end = datetime.strptime(str(row.to_json()['date_finished']), date_format_str)
+        diff = end - start
+        diff_in_minutes = diff.total_seconds() / 60
+        time += diff.total_seconds() / 60
+    result = "this user doesn't have worked on single task" if not res else time/len(res)
+    return jsonify({"average minutes": result})
 
