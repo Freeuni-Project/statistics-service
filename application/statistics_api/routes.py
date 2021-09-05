@@ -39,9 +39,9 @@ def post_create():
     return response
 
 
-@statistics_api_blueprint.route('/api/stat/average-time', methods=['GET'])
-def get_average_time():
-    res = Stat.query.filter(Stat.date_finished!=None).all()
+@statistics_api_blueprint.route('/api/stat/<project_id>/average-time', methods=['GET'])
+def get_average_time(project_id):
+    res = Stat.query.filter(Stat.date_finished!=None, Stat.project_id==project_id).all()
     time = 0
     for row in res:
         date_format_str = '%Y-%m-%d %H:%M:%S.%f'
@@ -49,14 +49,15 @@ def get_average_time():
         end = datetime.strptime(str(row.to_json()['date_finished']), date_format_str)
         diff = end - start
         diff_in_minutes = diff.total_seconds() / 60
-        time += diff.total_seconds() / 60
+        time += diff_in_minutes
     result = "there is not finished task to calculate average time" if not res else time/len(res)
-    return jsonify({"average minutes": time/len(res)})
+    return jsonify({"avg_time": result})
 
 
-@statistics_api_blueprint.route('/api/stat/<user_id>/average-time', methods=['GET'])
-def get_average_time_by_user(user_id):
-    res = Stat.query.filter(Stat.date_finished!=None, Stat.assignee_id==user_id).all()
+@statistics_api_blueprint.route('/api/stat/<project_id>/user-average-time', methods=['GET'])
+def get_average_time_by_user(project_id):
+    user_id = request.json['user_id']
+    res = Stat.query.filter(Stat.project_id==project_id, Stat.date_finished!=None, Stat.assignee_id==user_id,).all()
     time = 0
     for row in res:
         date_format_str = '%Y-%m-%d %H:%M:%S.%f'
@@ -64,7 +65,13 @@ def get_average_time_by_user(user_id):
         end = datetime.strptime(str(row.to_json()['date_finished']), date_format_str)
         diff = end - start
         diff_in_minutes = diff.total_seconds() / 60
-        time += diff.total_seconds() / 60
+        time += diff_in_minutes
     result = "this user doesn't have worked on single task" if not res else time/len(res)
-    return jsonify({"average minutes": result})
+    return jsonify({"avg_time": result})
 
+
+@statistics_api_blueprint.route('/api/stat/<project_id>/user-ticket-num', methods=['GET'])
+def get_ticket_number_by_user(project_id):
+    user_id = request.json['user_id']
+    res = Stat.query.filter(Stat.project_id==project_id, Stat.date_finished!=None, Stat.assignee_id==user_id).all()
+    return jsonify({"ticket_num": len(res)})

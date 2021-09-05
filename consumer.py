@@ -74,8 +74,8 @@ def callback(ch, method, properties, body):
         update_stat_done(data, properties.content_type)
 
     elif properties.content_type == 'delete_ticket':
-        delete_stat_from_db(data, properties.content_type)
-
+        # delete_stat_from_db(data, properties.content_type)
+        pass
 
 channel.basic_consume(queue='stat_queue', on_message_callback=callback, auto_ack=True)
 
