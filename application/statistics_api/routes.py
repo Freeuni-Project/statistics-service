@@ -54,9 +54,8 @@ def get_average_time(project_id):
     return jsonify({"avg_time": result})
 
 
-@statistics_api_blueprint.route('/api/stat/<project_id>/user-average-time', methods=['GET'])
-def get_average_time_by_user(project_id):
-    user_id = request.json['user_id']
+@statistics_api_blueprint.route('/api/stat/<project_id>/<user_id>/user-average-time', methods=['GET'])
+def get_average_time_by_user(project_id, user_id):
     res = Stat.query.filter(Stat.project_id==project_id, Stat.date_finished!=None, Stat.assignee_id==user_id,).all()
     time = 0
     for row in res:
@@ -70,8 +69,7 @@ def get_average_time_by_user(project_id):
     return jsonify({"avg_time": result})
 
 
-@statistics_api_blueprint.route('/api/stat/<project_id>/user-ticket-num', methods=['GET'])
-def get_ticket_number_by_user(project_id):
-    user_id = request.json['user_id']
+@statistics_api_blueprint.route('/api/stat/<project_id>/<user_id>/user-ticket-num', methods=['GET'])
+def get_ticket_number_by_user(project_id, user_id):
     res = Stat.query.filter(Stat.project_id==project_id, Stat.date_finished!=None, Stat.assignee_id==user_id).all()
     return jsonify({"ticket_num": len(res)})
